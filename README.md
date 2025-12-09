@@ -10,3 +10,12 @@ Multi-tenant document chat system with enterprise patterns
 - Vector DB (planned)
 
 
+
+## Setup
+1. Copy `appsettings.example.json` to `appsettings.json`
+2. Add your OpenAI API key in `appsettings.json`
+3. Run: `dotnet run`
+
+
+
+
