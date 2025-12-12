@@ -1,4 +1,3 @@
-
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.Extensions.Configuration;
@@ -27,6 +26,19 @@ var history = new Microsoft.SemanticKernel.ChatCompletion.ChatHistory();
 Console.WriteLine("Testing document reader...");
 var testDoc = DocumentReader.ReadText("TestDoc.txt");
 Console.WriteLine($"Read document: {testDoc}\n");
+
+
+// Update Program.cs to test PDF too
+var pdfText = DocumentReader.ReadPdf("dummy.pdf");
+if (!string.IsNullOrEmpty(pdfText))
+{
+    int length = Math.Min(100, pdfText.Length); // take up to 100 chars
+    Console.WriteLine($"PDF content: {pdfText.Substring(0, length)}...");
+}
+else
+{
+    Console.WriteLine("PDF is empty or could not be read.");
+}
 
 while (true)
 {
