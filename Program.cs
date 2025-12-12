@@ -23,6 +23,11 @@ Console.WriteLine("Type 'exit' to quit\n");
 
 var history = new Microsoft.SemanticKernel.ChatCompletion.ChatHistory();
 
+// Test document reading
+Console.WriteLine("Testing document reader...");
+var testDoc = DocumentReader.ReadText("TestDoc.txt");
+Console.WriteLine($"Read document: {testDoc}\n");
+
 while (true)
 {
     Console.Write("You: ");
