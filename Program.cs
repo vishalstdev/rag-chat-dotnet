@@ -27,8 +27,6 @@ Console.WriteLine("Testing document reader...");
 var testDoc = DocumentReader.ReadText("TestDoc.txt");
 Console.WriteLine($"Read document: {testDoc}\n");
 
-
-// Update Program.cs to test PDF too
 var pdfText = DocumentReader.ReadPdf("dummy.pdf");
 if (!string.IsNullOrEmpty(pdfText))
 {
