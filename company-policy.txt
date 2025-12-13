@@ -1,0 +1,13 @@
+Contoso Corporation Remote Work Policy
+
+Effective Date: January 1, 2026
+
+1. Eligibility: All full-time employees are eligible for remote work up to 3 days per week.
+
+2. Equipment: Company will provide laptop and monitor. Employees responsible for internet connectivity.
+
+3. Working Hours: Core hours 10 AM - 3 PM in employee's timezone. Flexible schedule outside core hours.
+
+4. Communication: Daily standup at 10 AM via video call. Slack for async communication.
+
+5. Performance: Evaluated on output and results, not hours logged.
