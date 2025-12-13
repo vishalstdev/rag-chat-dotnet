@@ -33,26 +33,26 @@ if (!string.IsNullOrEmpty(docPath) && File.Exists(docPath))
         if (docPath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
         {
             content = DocumentReader.ReadPdf(docPath);
-            Console.WriteLine($"✓ Loaded PDF: {Path.GetFileName(docPath)}");
+            Console.WriteLine($"{Symbols.Success} Loaded PDF: {Path.GetFileName(docPath)}");
         }
         else
         {
             content = DocumentReader.ReadText(docPath);
-            Console.WriteLine($"✓ Loaded text file: {Path.GetFileName(docPath)}");
+            Console.WriteLine($"{Symbols.Success} Loaded text file: {Path.GetFileName(docPath)}");
         }
         
         // Add document to context
         history.AddSystemMessage($"You are a helpful assistant. Use the following document to answer user questions:\n\n{content}");
-        Console.WriteLine($"✓ Document loaded into context ({content.Length} characters)\n");
+        Console.WriteLine($"{Symbols.Success} Document loaded into context ({content.Length} characters)\n");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"✗ Error loading document: {ex.Message}\n");
+        Console.WriteLine($"{Symbols.Failure} Error loading document: {ex.Message}\n");
     }
 }
 else if (!string.IsNullOrEmpty(docPath))
 {
-    Console.WriteLine($"✗ File not found: {docPath}\n");
+    Console.WriteLine($"{Symbols.Failure} File not found: {docPath}\n");
 }
 else
 {
