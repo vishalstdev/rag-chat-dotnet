@@ -2,12 +2,12 @@
 Principal-level architecture demo using C# + Semantic Kernel + Vector Search
 
 ## Features
-- ✅ Chat with OpenAI GPT-4
-- ✅ Load documents (PDF, TXT) and split into chunks
-- ✅ Generate embeddings using OpenAI
-- ✅ Store vectors in Qdrant for semantic search
-- ✅ Retrieve relevant context using vector similarity
-- ✅ Answer questions based on document content
+- Chat with OpenAI GPT-4
+- Load documents (PDF, TXT) and split into chunks
+- Generate embeddings using OpenAI
+- Store vectors in Qdrant for semantic search
+- Retrieve relevant context using vector similarity
+- Answer questions based on document content
 
 ## Architecture
 ```
