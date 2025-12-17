@@ -24,6 +24,8 @@ Console.WriteLine("=== RAG Chat Application ===\n");
 Console.Write("Enter document path (or press Enter to skip): ");
 var docPath = Console.ReadLine()?.Trim();
 
+
+
 if (!string.IsNullOrEmpty(docPath) && File.Exists(docPath))
 {
     try
@@ -40,7 +42,17 @@ if (!string.IsNullOrEmpty(docPath) && File.Exists(docPath))
             content = DocumentReader.ReadText(docPath);
             Console.WriteLine($"{Symbols.Success} Loaded text file: {Path.GetFileName(docPath)}");
         }
-        
+
+        // After loading document
+        var chunker = new DocumentChunker(chunkSize: 500, overlap: 50);
+        var chunks = chunker.ChunkText(content);
+
+        Console.WriteLine($"Document split into {chunks.Count} chunks");
+        foreach (var chunk in chunks.Take(2))
+        {
+            Console.WriteLine($"Chunk preview: {chunk.Substring(0, Math.Min(100, chunk.Length))}...\n");
+        }
+
         // Add document to context
         history.AddSystemMessage($"You are a helpful assistant. Use the following document to answer user questions:\n\n{content}");
         Console.WriteLine($"{Symbols.Success} Document loaded into context ({content.Length} characters)\n");
@@ -58,6 +70,7 @@ else
 {
     Console.WriteLine("No document loaded. Chatting without context.\n");
 }
+
 
 // Chat loop
 Console.WriteLine("Type your questions (or 'exit' to quit):\n");
