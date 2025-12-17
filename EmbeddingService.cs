@@ -1,3 +1,5 @@
+#pragma warning disable CS0618 // Suppress obsolete warning for now
+
 using Microsoft.SemanticKernel.Embeddings;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 
@@ -13,15 +15,5 @@ public class EmbeddingService
     public async Task<ReadOnlyMemory<float>> GenerateEmbeddingAsync(string text)
     {
         return await _embeddingService.GenerateEmbeddingAsync(text);
-    }
-    
-    public async Task<List<ReadOnlyMemory<float>>> GenerateEmbeddingsAsync(List<string> texts)
-    {
-        var embeddings = new List<ReadOnlyMemory<float>>();
-        foreach (var text in texts)
-        {
-            embeddings.Add(await GenerateEmbeddingAsync(text));
-        }
-        return embeddings;
     }
 }

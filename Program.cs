@@ -2,7 +2,6 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.Extensions.Configuration;
 
-// Load config
 var config = new ConfigurationBuilder()
     .AddJsonFile("appsettings.json")
     .Build();
@@ -10,21 +9,25 @@ var config = new ConfigurationBuilder()
 var apiKey = config["OpenAI:ApiKey"];
 var model = config["OpenAI:Model"];
 
-// Build kernel
 var builder = Kernel.CreateBuilder();
 builder.AddOpenAIChatCompletion(model, apiKey);
 var kernel = builder.Build();
-
 var chat = kernel.GetRequiredService<IChatCompletionService>();
-var history = new Microsoft.SemanticKernel.ChatCompletion.ChatHistory();
 
-Console.WriteLine("=== RAG Chat Application ===\n");
+Console.WriteLine("=== RAG Chat with Vector Search ===\n");
+
+// Initialize services
+var embeddingService = new EmbeddingService(apiKey);
+var vectorStore = new VectorStoreService();
+var chunker = new DocumentChunker(chunkSize: 500, overlap: 50);
+
+await vectorStore.CreateCollectionIfNotExistsAsync();
 
 // Document loading
 Console.Write("Enter document path (or press Enter to skip): ");
 var docPath = Console.ReadLine()?.Trim();
 
-
+List<string> documentChunks = new();
 
 if (!string.IsNullOrEmpty(docPath) && File.Exists(docPath))
 {
@@ -42,24 +45,30 @@ if (!string.IsNullOrEmpty(docPath) && File.Exists(docPath))
             content = DocumentReader.ReadText(docPath);
             Console.WriteLine($"{Symbols.Success} Loaded text file: {Path.GetFileName(docPath)}");
         }
-
-        // After loading document
-        var chunker = new DocumentChunker(chunkSize: 500, overlap: 50);
-        var chunks = chunker.ChunkText(content);
-
-        Console.WriteLine($"Document split into {chunks.Count} chunks");
-        foreach (var chunk in chunks.Take(2))
+        
+        // Chunk the document
+        documentChunks = chunker.ChunkText(content);
+        Console.WriteLine($"{Symbols.Success} Document split into {documentChunks.Count} chunks");
+        
+        // Generate embeddings and store in vector DB
+        Console.WriteLine($"{Symbols.Info} Generating embeddings and storing in vector DB...");
+        
+        for (int i = 0; i < documentChunks.Count; i++)
         {
-            Console.WriteLine($"Chunk preview: {chunk.Substring(0, Math.Min(100, chunk.Length))}...\n");
+            var embedding = await embeddingService.GenerateEmbeddingAsync(documentChunks[i]);
+            await vectorStore.StoreChunkAsync($"chunk_{i}", documentChunks[i], embedding);
+            
+            if ((i + 1) % 10 == 0)
+            {
+                Console.WriteLine($"  Processed {i + 1}/{documentChunks.Count} chunks...");
+            }
         }
-
-        // Add document to context
-        history.AddSystemMessage($"You are a helpful assistant. Use the following document to answer user questions:\n\n{content}");
-        Console.WriteLine($"{Symbols.Success} Document loaded into context ({content.Length} characters)\n");
+        
+        Console.WriteLine($"{Symbols.Success} Vector database ready with {documentChunks.Count} chunks\n");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"{Symbols.Failure} Error loading document: {ex.Message}\n");
+        Console.WriteLine($"{Symbols.Failure} Error: {ex.Message}\n");
     }
 }
 else if (!string.IsNullOrEmpty(docPath))
@@ -71,8 +80,8 @@ else
     Console.WriteLine("No document loaded. Chatting without context.\n");
 }
 
-
-// Chat loop
+// Chat loop with vector search
+var history = new Microsoft.SemanticKernel.ChatCompletion.ChatHistory();
 Console.WriteLine("Type your questions (or 'exit' to quit):\n");
 
 while (true)
@@ -83,18 +92,43 @@ while (true)
     if (string.IsNullOrEmpty(input)) continue;
     if (input.ToLower() == "exit") break;
     
-    history.AddUserMessage(input);
-    
     try
     {
+        string contextMessage = "";
+        
+        // If we have document chunks, do vector search
+        if (documentChunks.Count > 0)
+        {
+            var queryEmbedding = await embeddingService.GenerateEmbeddingAsync(input);
+            var searchResults = await vectorStore.SearchAsync(queryEmbedding, limit: 3);
+            
+            if (searchResults.Count > 0)
+            {
+                Console.WriteLine($"\n{Symbols.Info} Found {searchResults.Count} relevant chunks (scores: {string.Join(", ", searchResults.Select(r => $"{r.score:F2}"))})");
+                
+                var relevantContext = string.Join("\n\n", searchResults.Select(r => r.text));
+                contextMessage = $"Answer the question based on this context:\n\n{relevantContext}\n\nQuestion: {input}";
+            }
+            else
+            {
+                contextMessage = $"No relevant context found. Answer generally: {input}";
+            }
+        }
+        else
+        {
+            contextMessage = input;
+        }
+        
+        history.AddUserMessage(contextMessage);
+        
         var response = await chat.GetChatMessageContentAsync(history);
         history.AddAssistantMessage(response.Content);
         
-        Console.WriteLine($"AI: {response.Content}\n");
+        Console.WriteLine($"\nAI: {response.Content}\n");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Error: {ex.Message}\n");
+        Console.WriteLine($"{Symbols.Failure} Error: {ex.Message}\n");
     }
 }
 
