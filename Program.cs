@@ -12,7 +12,6 @@ var model = config["OpenAI:Model"];
 var builder = Kernel.CreateBuilder();
 builder.AddOpenAIChatCompletion(model, apiKey);
 var kernel = builder.Build();
-var chat = kernel.GetRequiredService<IChatCompletionService>();
 
 Console.WriteLine("=== RAG Chat with Vector Search ===\n");
 
@@ -22,18 +21,18 @@ var vectorStore = new VectorStoreService();
 await vectorStore.CreateCollectionIfNotExistsAsync();
 
 var documentStore = new VectorDocumentStore(embeddingService, vectorStore);
+var ragOrchestrator = new RagOrchestrator(kernel.GetRequiredService<IChatCompletionService>(), documentStore);
 
 // Document loading
 Console.Write("Enter document path (or press Enter to skip): ");
 var docPath = Console.ReadLine()?.Trim();
 
-bool hasDocuments = false;
 if (!string.IsNullOrEmpty(docPath))
 {
     try
     {
-        hasDocuments = await documentStore.IngestDocumentAsync(docPath);
-        if (hasDocuments)
+        var success = await documentStore.IngestDocumentAsync(docPath);
+        if (success)
         {
             var fileType = docPath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) ? "PDF" : "text file";
             Console.WriteLine($"{Symbols.Success} Loaded {fileType}: {Path.GetFileName(docPath)}");
@@ -54,8 +53,7 @@ else
     Console.WriteLine("No document loaded. Chatting without context.\n");
 }
 
-// Chat loop with vector search
-var history = new Microsoft.SemanticKernel.ChatCompletion.ChatHistory();
+// Chat loop
 Console.WriteLine("Type your questions (or 'exit' to quit):\n");
 
 while (true)
@@ -68,36 +66,8 @@ while (true)
     
     try
     {
-        string contextMessage = "";
-        
-        // If we have documents, do vector search
-        if (hasDocuments)
-        {
-            var relevantChunks = await documentStore.RetrieveRelevantContextAsync(input);
-            var chunksList = relevantChunks.ToList();
-            
-            if (chunksList.Count > 0)
-            {
-                Console.WriteLine($"\n{Symbols.Info} Found {chunksList.Count} relevant chunks");
-                var relevantContext = string.Join("\n\n", chunksList);
-                contextMessage = $"Answer the question based on this context:\n\n{relevantContext}\n\nQuestion: {input}";
-            }
-            else
-            {
-                contextMessage = $"No relevant context found. Answer generally: {input}";
-            }
-        }
-        else
-        {
-            contextMessage = input;
-        }
-        
-        history.AddUserMessage(contextMessage);
-        
-        var response = await chat.GetChatMessageContentAsync(history);
-        history.AddAssistantMessage(response.Content);
-        
-        Console.WriteLine($"\nAI: {response.Content}\n");
+        var response = await ragOrchestrator.AskAsync(input);
+        Console.WriteLine($"\nAI: {response}\n");
     }
     catch (Exception ex)
     {
