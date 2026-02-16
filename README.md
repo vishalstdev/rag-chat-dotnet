@@ -10,9 +10,95 @@ Principal-level architecture demo using C# + Semantic Kernel + Vector Search
 - Answer questions based on document content
 
 ## Architecture
+
+### High-Level Flow
 ```
-User Document → Chunking → Embeddings (OpenAI) → Qdrant Vector DB
-User Question → Embedding → Vector Search → Top 3 Chunks → GPT-4 → Answer
+┌─────────────┐
+│   User      │
+│  Document   │
+└──────┬──────┘
+       │
+       ▼
+┌──────────────────┐
+│ VectorDocumentStore│  ◄─── IDocumentStore
+└──────┬──────┬─────┘
+       │      │
+       ▼      ▼
+ ┌─────────┐ ┌──────────────┐
+ │Document │ │ EmbeddingService│
+ │Chunker  │ │  (OpenAI API)  │
+ └────┬────┘ └────────┬───────┘
+      │              │
+      └──────┬───────┘
+             ▼
+    ┌─────────────────┐
+    │VectorStoreService│
+    │   (Qdrant DB)   │
+    └─────────────────┘
+
+┌─────────────┐
+│    User     │
+│   Query     │
+└──────┬──────┘
+       │
+       ▼
+┌──────────────────┐
+│  RagOrchestrator │  ◄─── IRagOrchestrator
+└──────┬──────┬────┘
+       │      │
+       ▼      ▼
+┌──────────────┐  ┌────────────────┐
+│VectorDocument│  │ ChatCompletion │
+│    Store     │  │   (GPT-4)      │
+│(Retrieve top │  │                │
+│  3 chunks)   │  │                │
+└──────────────┘  └────────────────┘
+```
+
+### Component Interaction
+```
+Program.cs
+    │
+    ├──► EmbeddingService (OpenAI API wrapper)
+    │
+    ├──► VectorStoreService (Qdrant client)
+    │
+    ├──► VectorDocumentStore (implements IDocumentStore)
+    │         │
+    │         ├──► DocumentChunker
+    │         ├──► EmbeddingService
+    │         └──► VectorStoreService
+    │
+    └──► RagOrchestrator (implements IRagOrchestrator)
+              │
+              ├──► IDocumentStore (for retrieval)
+              └──► IChatCompletionService (for GPT-4)
+```
+
+### Data Flow: Document Ingestion
+```
+1. User uploads document.pdf
+2. VectorDocumentStore reads file
+3. DocumentChunker splits into 500-word chunks with 50-word overlap
+4. For each chunk:
+   a. EmbeddingService generates 1536-dim vector
+   b. VectorStoreService stores in Qdrant with metadata
+5. System ready for queries
+```
+
+### Data Flow: Question Answering
+```
+1. User asks "What are the working hours?"
+2. RagOrchestrator receives query
+3. VectorDocumentStore:
+   a. Generates embedding for query
+   b. Searches Qdrant (cosine similarity, threshold 0.7)
+   c. Returns top 3 relevant chunks
+4. RagOrchestrator:
+   a. Builds context message with retrieved chunks
+   b. Sends to GPT-4 via ChatCompletionService
+   c. Returns answer to user
+5. Chat history maintained for follow-up questions
 ```
 
 ## Prerequisites
