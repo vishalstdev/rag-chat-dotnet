@@ -11,6 +11,8 @@ Principal-level architecture demo using C# + Semantic Kernel + Vector Search
 
 ## Architecture
 
+*Note: The following architecture diagrams were created by analyzing the codebase with Claude AI to visualize component relationships and data flow.*
+
 ### High-Level Flow
 ```
 ┌─────────────┐
