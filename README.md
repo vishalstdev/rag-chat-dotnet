@@ -160,3 +160,13 @@ AI: The core working hours are 10 AM - 3 PM in the employee's timezone.
 - [ ] Web API layer
 - [ ] Better chunking strategies (semantic chunking)
 - [ ] Caching for repeated queries
+
+
+## Development Notes
+
+This project was developed with assistance from Claude AI (Anthropic) for:
+- Architecture diagram generation
+- Code review and best practices
+- Documentation structure
+
+All core implementation, design decisions, and system architecture are my own work.
